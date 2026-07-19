@@ -29,6 +29,26 @@ def test_registry():
     assert ret is memstore
 
 
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        # "#" is valid in object-store keys but urlparse treats it as a fragment.
+        ("s3://bucket1/path/to/DC_DCAM#1_CAM3.tif", "path/to/DC_DCAM#1_CAM3.tif"),
+        # "?" is valid too and urlparse treats it as a query string.
+        ("s3://bucket1/path/to/obj?v=1.tif", "path/to/obj?v=1.tif"),
+        # ";" in the final segment is treated as params by urlparse.
+        ("s3://bucket1/path/to/obj;a=b.tif", "path/to/obj;a=b.tif"),
+    ],
+)
+def test_resolve_preserves_special_chars_in_key(url, expected):
+    registry = ObjectStoreRegistry()
+    memstore = MemoryStore()
+    registry.register("s3://bucket1", memstore)
+    ret, path = registry.resolve(url)
+    assert path == expected
+    assert ret is memstore
+
+
 def test_register_raises():
     registry = ObjectStoreRegistry()
     with pytest.raises(

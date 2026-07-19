@@ -318,7 +318,17 @@ class ObjectStoreRegistry(Generic[T]):
         ```
         """
         parsed = urlparse(url)
+        # Object-store keys can contain ";", "?" and "#", which urlparse peels off
+        # into the URL params/query/fragment. These characters are valid in
+        # S3/GCS/Azure keys (e.g. "DC_DCAM#1_CAM3.tif"), so reattach them to
+        # reconstruct the full path; otherwise the key would be silently truncated.
         path = parsed.path
+        if parsed.params:
+            path = f"{path};{parsed.params}"
+        if parsed.query:
+            path = f"{path}?{parsed.query}"
+        if parsed.fragment:
+            path = f"{path}#{parsed.fragment}"
 
         key = UrlKey(parsed.scheme, parsed.netloc)
 
